@@ -264,17 +264,19 @@
                         <echo message="Downloading OpenSSL" />
 
                         <condition property="opensslFound"> 
-                          <http url="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" /> 
+                          <http url="https://github.com/lizhanhui/openssl/archive/refs/tags/${opensslVersion}.tar.gz" /> 
                         </condition> 
                          <if>
                           <equals arg1="${opensslFound}" arg2="true" />
                           <then>
                             <!-- Download the openssl source. -->
-                            <get src="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                            <!-- https://github.com/lizhanhui/openssl/archive/refs/tags/3.0.12.tar.gz -->
+                            <get src="https://github.com/lizhanhui/openssl/archive/refs/tags/${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </then>
                           <else>
+                           <!-- Not reachable -->
                            <!-- Download the openssl source from the old directory -->
-                            <get src="https://www.openssl.org/source/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                            <get src="https://github.com/lizhanhui/openssl/archive/refs/tags/old/${opensslMinorVersion}/${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </else>
                         </if>
                         <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
@@ -374,17 +376,17 @@
                         <echo message="Downloading OpenSSL" />
 
                         <condition property="opensslFound"> 
-                          <http url="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" /> 
+                          <http url="https://github.com/lizhanhui/openssl/archive/refs/tags/${opensslVersion}.tar.gz" /> 
                         </condition> 
                          <if>
                           <equals arg1="${opensslFound}" arg2="true" />
                           <then>
                             <!-- Download the openssl source. -->
-                            <get src="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                            <get src="https://github.com/lizhanhui/openssl/archive/refs/tags/${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </then>
                           <else>
                            <!-- Download the openssl source from the old directory -->
-                            <get src="https://www.openssl.org/source/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                            <get src="https://github.com/lizhanhui/openssl/archive/refs/tags/old/${opensslMinorVersion}/${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </else>
                         </if>
                         <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
@@ -472,17 +474,17 @@
                         <echo message="Downloading OpenSSL" />
 
                         <condition property="opensslFound"> 
-                          <http url="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" /> 
+                          <http url="https://github.com/lizhanhui/openssl/archive/refs/tags/${opensslVersion}.tar.gz" /> 
                         </condition> 
                          <if>
                           <equals arg1="${opensslFound}" arg2="true" />
                           <then>
                             <!-- Download the openssl source. -->
-                            <get src="https://www.openssl.org/source/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                            <get src="https://github.com/lizhanhui/openssl/archive/refs/tags/${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </then>
                           <else>
                            <!-- Download the openssl source from the old directory -->
-                            <get src="https://www.openssl.org/source/old/${opensslMinorVersion}/openssl-${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
+                            <get src="https://github.com/lizhanhui/openssl/archive/refs/tags/old/${opensslMinorVersion}/${opensslVersion}.tar.gz" dest="${project.build.directory}/openssl-${opensslVersion}.tar.gz" verbose="on" />
                           </else>
                         </if>
                         <checksum file="${project.build.directory}/openssl-${opensslVersion}.tar.gz" algorithm="SHA-256" property="${opensslSha256}" verifyProperty="isEqual" />
