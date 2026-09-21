@@ -717,7 +717,7 @@
                     <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
 
                     <if>
-                      <available file="${aprHome}" />
+                      <available file="${aprHome}/bin/apr-1-config" />
                       <then>
                         <echo message="APR was already build, skipping the build step." />
                       </then>
@@ -775,6 +775,30 @@
                               -->
                               <exec executable="make" failonerror="false" dir="${aprSourceDir}" resolveexecutable="true" />
                               <exec executable="gcc" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <arg line="-Wall -O2 -DCROSS_COMPILE tools/gen_test_char.c -o tools/gen_test_char" />
+                              </exec>
+                              <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h" />
+                              <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" />
+                              <exec executable="make" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <arg line="install" />
+                              </exec>
+                            </then>
+                          </elseif>
+                          <elseif>
+                            <equals arg1="${crossCompile}" arg2="android" />
+                            <then>
+                              <!--
+                                NDK clang + bionic. androidHost is aarch64-linux-android or
+                                arm-linux-androideabi (config.sub); CC is the NDK clang wrapper.
+                              -->
+                              <exec executable="configure" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <arg line="--disable-shared --prefix=${aprHome} --host=${androidHost} CC=${ndkToolchain}/bin/${androidTriple}${androidMinSdkVersion}-clang CFLAGS='-O3 -fno-omit-frame-pointer -fPIC -DHAVE_PTHREAD_RWLOCKS=1' ac_cv_have_decl_sys_siglist=no ac_cv_file__dev_zero=yes ac_cv_func_setpgrp_void=yes apr_cv_tcp_nodelay_with_cork=yes ac_cv_sizeof_struct_iovec=${aprIovecSize} ac_cv_search_crypt=no ac_cv_strerror_r_rc_int=yes apr_cv_process_shared_works=yes apr_cv_mutex_robust_shared=no apr_cv_mutex_recursive=yes" />
+                              </exec>
+                              <exec executable="make" failonerror="false" dir="${aprSourceDir}" resolveexecutable="true" />
+                              <!-- NDK llvm/ld is on PATH; host gcc must not pick it up. -->
+                              <exec executable="gcc" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true">
+                                <env key="PATH" value="/usr/bin:/bin" />
+                                <env key="LDFLAGS" value="" />
                                 <arg line="-Wall -O2 -DCROSS_COMPILE tools/gen_test_char.c -o tools/gen_test_char" />
                               </exec>
                               <exec executable="tools/gen_test_char" failonerror="true" dir="${aprSourceDir}" resolveexecutable="true" output="${aprSourceDir}/include/private/apr_escape_test_char.h" />

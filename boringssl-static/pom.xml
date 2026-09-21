@@ -1142,6 +1142,252 @@
         </plugins>
       </build>
     </profile>
+
+    <profile>
+      <id>android-armeabi-v7a</id>
+      <activation>
+        <os>
+          <family>linux</family>
+        </os>
+        <property>
+          <name>android</name>
+        </property>
+      </activation>
+      <properties>
+        <androidAbi>armeabi-v7a</androidAbi>
+        <androidTriple>armv7a-linux-androideabi</androidTriple>
+        <androidHost>arm-linux-androideabi</androidHost>
+        <archBits>32</archBits>
+        <aprIovecSize>8</aprIovecSize>
+      </properties>
+    </profile>
+    <profile>
+      <id>android-arm64-v8a</id>
+      <properties>
+        <androidAbi>arm64-v8a</androidAbi>
+        <androidTriple>aarch64-linux-android</androidTriple>
+        <androidHost>aarch64-linux-android</androidHost>
+        <archBits>64</archBits>
+        <aprIovecSize>16</aprIovecSize>
+      </properties>
+    </profile>
+    <profile>
+      <id>android</id>
+      <activation>
+        <os>
+          <family>linux</family>
+        </os>
+        <property>
+          <name>android</name>
+        </property>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+        <linkStatic>true</linkStatic>
+        <compileLibrary>true</compileLibrary>
+        <crossCompile>android</crossCompile>
+        <androidMinSdkVersion>21</androidMinSdkVersion>
+        <ANDROID_NDK_HOME>${env.ANDROID_NDK_HOME}</ANDROID_NDK_HOME>
+        <ndkToolchain>${env.ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64</ndkToolchain>
+        <aprHome>${project.build.directory}/apr/${androidAbi}</aprHome>
+        <aprSourceDir>${project.build.directory}/apr-source/${androidAbi}</aprSourceDir>
+        <boringsslSourceDir>${project.build.directory}/boringssl-${boringsslBranch}</boringsslSourceDir>
+        <boringsslHome>${boringsslSourceDir}/build/${androidAbi}</boringsslHome>
+        <nativeLibOnlyDir>${project.build.directory}/native-lib-only/${androidAbi}</nativeLibOnlyDir>
+        <nativeJarFile>${project.build.directory}/${project.build.finalName}-android-${androidAbi}.jar</nativeJarFile>
+        <jniClassifier>android-${androidAbi}</jniClassifier>
+        <jniArch>${androidAbi}</jniArch>
+        <javaModuleNameClassifier>android.${androidAbi}</javaModuleNameClassifier>
+        <cflags>-O3 -Werror -fno-omit-frame-pointer -fvisibility=hidden -Wunused -Wno-unused-value</cflags>
+        <cppflags>-DHAVE_OPENSSL -I${boringsslSourceDir}/include</cppflags>
+        <muslCheck.skip>true</muslCheck.skip>
+        <strip.skip>true</strip.skip>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-scm-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>get-boringssl</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>checkout</goal>
+                </goals>
+                <configuration>
+                  <checkoutDirectory>${boringsslSourceDir}</checkoutDirectory>
+                  <connectionType>developerConnection</connectionType>
+                  <developerConnectionUrl>scm:git:https://boringssl.googlesource.com/boringssl</developerConnectionUrl>
+                  <scmVersion>${boringsslBranch}</scmVersion>
+                  <scmVersionType>branch</scmVersionType>
+                  <skipCheckoutIfExists>true</skipCheckoutIfExists>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>${generatedSourcesDir}/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>setup-android-hawtjni-template</id>
+                <phase>process-sources</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <mkdir dir="${generatedSourcesDir}/native-package/m4" />
+                    <copy file="src/main/native-package/m4/custom.m4.android.template" tofile="${generatedSourcesDir}/native-package/m4/custom.m4" overwrite="true" />
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>build-boringssl</id>
+                <phase>compile</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                    <property environment="env" />
+                    <if>
+                      <available file="${boringsslHome}/libssl.a" />
+                      <then>
+                        <echo message="BoringSSL was already built, skipping the build step." />
+                      </then>
+                      <else>
+                        <echo message="Building BoringSSL for Android ${androidAbi}" />
+                        <exec executable="git" failonerror="true" dir="${boringsslSourceDir}" resolveexecutable="true">
+                          <arg value="checkout" />
+                          <arg value="${boringsslCommitSha}" />
+                        </exec>
+                        <mkdir dir="${boringsslHome}" />
+                        <exec executable="cmake" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
+                          <arg value="-DANDROID_ABI=${androidAbi}" />
+                          <arg value="-DANDROID_PLATFORM=android-${androidMinSdkVersion}" />
+                          <arg value="-DANDROID_STL=c++_shared" />
+                          <arg value="-DCMAKE_TOOLCHAIN_FILE=${env.ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake" />
+                          <arg value="-DANDROID_NATIVE_API_LEVEL=${androidMinSdkVersion}" />
+                          <arg value="-DCMAKE_POSITION_INDEPENDENT_CODE=TRUE" />
+                          <arg value="-DCMAKE_BUILD_TYPE=Release" />
+                          <arg value="-DCMAKE_ASM_FLAGS=-Wa,--noexecstack" />
+                          <arg value="-DCMAKE_C_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer" />
+                          <arg value="-DCMAKE_CXX_FLAGS_RELEASE=-O3 -fno-omit-frame-pointer -Wno-error=shadow -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS" />
+                          <arg value="-GNinja" />
+                          <arg value="${boringsslSourceDir}" />
+                        </exec>
+                        <exec executable="ninja" failonerror="true" dir="${boringsslHome}" resolveexecutable="true">
+                          <arg value="ssl" />
+                          <arg value="crypto" />
+                        </exec>
+                        <copy file="${boringsslHome}/ssl/libssl.a" todir="${boringsslHome}" failonerror="false" />
+                        <copy file="${boringsslHome}/crypto/libcrypto.a" todir="${boringsslHome}" failonerror="false" />
+                      </else>
+                    </if>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>native-jar</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <configuration>
+                  <target>
+                    <taskdef resource="net/sf/antcontrib/antcontrib.properties" />
+                    <mkdir dir="${project.build.directory}/native-libs/${androidAbi}" />
+                    <copy file="${nativeLibOnlyDir}/META-INF/native/libnetty_tcnative.so" todir="${project.build.directory}/native-libs/${androidAbi}" failonerror="true" />
+                    <copy file="${ndkToolchain}/sysroot/usr/lib/${androidHost}/libc++_shared.so" todir="${project.build.directory}/native-libs/${androidAbi}" failonerror="true" />
+                    <exec executable="${ndkToolchain}/bin/llvm-strip" failonerror="false">
+                      <arg value="--strip-debug" />
+                      <arg value="${project.build.directory}/native-libs/${androidAbi}/libnetty_tcnative.so" />
+                    </exec>
+                    <copy todir="${nativeJarWorkdir}">
+                      <zipfileset src="${defaultJarFile}" excludes="META-INF/versions/**/module-info.class" />
+                    </copy>
+                    <copy todir="${nativeJarWorkdir}" includeEmptyDirs="false">
+                      <zipfileset dir="${nativeLibOnlyDir}/META-INF/native" />
+                      <regexpmapper handledirsep="yes" from="^(?:[^/]+/)*([^/]+)$" to="META-INF/native/\1" />
+                    </copy>
+                    <copy file="../NOTICE.txt" todir="${nativeJarWorkdir}/META-INF/" />
+                    <copy file="../LICENSE.txt" todir="${nativeJarWorkdir}/META-INF/" />
+                    <copy todir="${nativeJarWorkdir}/META-INF/license">
+                      <fileset dir="../license" />
+                    </copy>
+                    <jar destfile="${nativeJarFile}" manifest="${nativeJarWorkdir}/META-INF/MANIFEST.MF" basedir="${nativeJarWorkdir}" index="true" excludes="META-INF/MANIFEST.MF,META-INF/INDEX.LIST" />
+                    <attachartifact file="${nativeJarFile}" classifier="${jniClassifier}" type="jar" />
+                  </target>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.fusesource.hawtjni</groupId>
+            <artifactId>hawtjni-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>build-native-lib</id>
+                <goals>
+                  <goal>generate</goal>
+                  <goal>build</goal>
+                </goals>
+                <phase>compile</phase>
+                <configuration>
+                  <name>netty_tcnative</name>
+                  <nativeSourceDirectory>${generatedSourcesDir}/c</nativeSourceDirectory>
+                  <customPackageDirectory>${generatedSourcesDir}/native-package</customPackageDirectory>
+                  <libDirectory>${nativeLibOnlyDir}</libDirectory>
+                  <platform>.</platform>
+                  <forceAutogen>${forceAutogen}</forceAutogen>
+                  <forceConfigure>${forceConfigure}</forceConfigure>
+                  <windowsBuildTool>msbuild</windowsBuildTool>
+                  <buildDirectory>${project.build.directory}/native-build/${androidAbi}</buildDirectory>
+                  <configureArgs>
+                    <configureArg>--with-ssl=no</configureArg>
+                    <configureArg>--with-apr=${aprHome}</configureArg>
+                    <configureArg>--with-static-libs</configureArg>
+                    <configureArg>--libdir=${project.build.directory}/native-build/${androidAbi}/native-build/target/lib</configureArg>
+                    <configureArg>CFLAGS=${cflags}</configureArg>
+                    <configureArg>CPPFLAGS=${cppflags}</configureArg>
+                    <configureArg>LDFLAGS=-L${boringsslHome} -lssl -lcrypto -lc++_shared -lm -ldl -Wl,-soname=libnetty_tcnative.so</configureArg>
+                    <configureArg>--host=${androidHost}</configureArg>
+                    <configureArg>TOOLCHAIN=${ndkToolchain}</configureArg>
+                    <configureArg>TARGET=${androidTriple}</configureArg>
+                    <configureArg>API=${androidMinSdkVersion}</configureArg>
+                    <configureArg>AR=${ndkToolchain}/bin/llvm-ar</configureArg>
+                    <configureArg>CC=${ndkToolchain}/bin/${androidTriple}${androidMinSdkVersion}-clang</configureArg>
+                    <configureArg>AS=${ndkToolchain}/bin/${androidTriple}${androidMinSdkVersion}-clang</configureArg>
+                    <configureArg>CXX=${ndkToolchain}/bin/${androidTriple}${androidMinSdkVersion}-clang++</configureArg>
+                    <configureArg>LD=${ndkToolchain}/bin/ld</configureArg>
+                    <configureArg>RANLIB=${ndkToolchain}/bin/llvm-ranlib</configureArg>
+                    <configureArg>STRIP=${ndkToolchain}/bin/llvm-strip</configureArg>
+                  </configureArgs>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <!--
       Profile that builds the uber-jar containing native libraries for all platforms. When this
       is active, it will automatically disable the default profile. This should only be used
